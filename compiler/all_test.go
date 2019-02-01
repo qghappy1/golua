@@ -2,13 +2,13 @@ package compiler
 
 import (
 	"fmt"
-	"testing"
 	"io/ioutil"
+	"testing"
 )
 
-func printProto(proto *FunctionProto, depth int)  {
+func printProto(proto *FunctionProto, depth int) {
 	t := ""
-	for i := 0; i<depth; i++ {
+	for i := 0; i < depth; i++ {
 		t = t + "\t"
 	}
 	fmt.Printf("%vSource:%v\n", t, proto.Source)
@@ -27,13 +27,13 @@ func printProto(proto *FunctionProto, depth int)  {
 	fmt.Printf("%vDbgCalls:%v\n", t, proto.DbgCalls)
 	fmt.Printf("%vDbgUpvalues:%v\n", t, proto.DbgUpvalues)
 
-	for _, p := range(proto.Protos) {
+	for _, p := range proto.Protos {
 		printProto(p, depth+1)
 	}
 }
 
 // go test -v
-func Test_All(t *testing.T){
+func Test_All(t *testing.T) {
 	//str := "local a, b = 1, 2 \n a = b + 1"
 	//proto := Compile(str, "str")
 	//printProto(proto, 0)
@@ -42,5 +42,4 @@ func Test_All(t *testing.T){
 		proto := Compile(string(data), "@"+filename)
 		printProto(proto, 0)
 	}
-
 }

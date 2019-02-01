@@ -51,8 +51,8 @@ func (bl LuaBool) String() string {
 }
 func (bl LuaBool) Type() LuaValueType { return LUA_TBOOLEAN }
 
-var LTrue = LuaBool(true)
-var LFalse = LuaBool(false)
+var LuaTrue = LuaBool(true)
+var LuaFalse = LuaBool(false)
 
 // 字符串类型
 type LuaString string
@@ -80,9 +80,8 @@ func floatToInteger(n LuaNumber) (int64, bool) {
 type LuaTable struct {
 	metatable *LuaTable
 	arr       []LuaValue
-	_map      map[LuaValue]LuaValue
+	map_      map[LuaValue]LuaValue
 	keys      map[LuaValue]LuaValue // used by next()
-	lastKey   LuaValue              // used by next()
 	changed   bool                  // used by next()
 }
 

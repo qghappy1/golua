@@ -2,10 +2,9 @@ package golua
 
 import (
 	"fmt"
-	"golua/number"
 	"golua/compiler"
+	"golua/number"
 )
-
 
 /* basic types */
 const (
@@ -22,8 +21,8 @@ const (
 
 var luaValueTypeNames = [8]string{"nil", "boolean", "number", "string", "table", "closure", "userdata", "state"}
 
-
 type LuaValueType int
+
 func (vt LuaValueType) String() string {
 	return luaValueTypeNames[int(vt)]
 }
@@ -35,26 +34,35 @@ type LuaValue interface {
 
 // 空类型
 type LuaNilType struct{}
-func (nl *LuaNilType) String() string			{ return "nil" }
-func (nl *LuaNilType) Type() LuaValueType		{ return LUA_TNIL }
+
+func (nl *LuaNilType) String() string     { return "nil" }
+func (nl *LuaNilType) Type() LuaValueType { return LUA_TNIL }
 
 var LuaNil = LuaValue(&LuaNilType{})
 
 // bool类型
 type LuaBool bool
-func (bl LuaBool) String() string 				{ if bool(bl) { return "true" }; return "false"}
-func (bl LuaBool) Type() LuaValueType			{ return LUA_TBOOLEAN }
+
+func (bl LuaBool) String() string {
+	if bool(bl) {
+		return "true"
+	}
+	return "false"
+}
+func (bl LuaBool) Type() LuaValueType { return LUA_TBOOLEAN }
 
 var LTrue = LuaBool(true)
 var LFalse = LuaBool(false)
 
 // 字符串类型
 type LuaString string
-func (st LuaString) String() string				{ return string(st) }
-func (st LuaString) Type() LuaValueType			{ return LUA_TSTRING }
+
+func (st LuaString) String() string     { return string(st) }
+func (st LuaString) Type() LuaValueType { return LUA_TSTRING }
 
 // 数字类型
 type LuaNumber float64
+
 func (nm LuaNumber) String() string {
 	i, ok := floatToInteger(nm)
 	if ok {
@@ -62,9 +70,9 @@ func (nm LuaNumber) String() string {
 	}
 	return fmt.Sprint(float64(nm))
 }
-func (nm LuaNumber) Type() LuaValueType			{ return LUA_TNUMBER }
+func (nm LuaNumber) Type() LuaValueType { return LUA_TNUMBER }
 
-func floatToInteger(n LuaNumber)  (int64, bool) {
+func floatToInteger(n LuaNumber) (int64, bool) {
 	return number.FloatToInteger(float64(n))
 }
 
@@ -77,45 +85,49 @@ type LuaTable struct {
 	lastKey   LuaValue              // used by next()
 	changed   bool                  // used by next()
 }
-func (tb *LuaTable) String() string				{ return fmt.Sprintf("table:%p", tb) }
-func (tb *LuaTable) Type() LuaValueType			{ return LUA_TTABLE }
 
+func (tb *LuaTable) String() string     { return fmt.Sprintf("table:%p", tb) }
+func (tb *LuaTable) Type() LuaValueType { return LUA_TTABLE }
 
 // lua栈
 type LuaState struct {
 	registry *LuaTable
-	//stack    *luaStack
+	stack    *luaStack
 	/* coroutine */
 	coStatus int
 	coCaller *LuaState
 	coChan   chan int
 }
-func (ls *LuaState) String() string				{ return fmt.Sprintf("state:%p", ls) }
-func (ls *LuaState) Type() LuaValueType			{ return LUA_TSTATE }
+
+func (ls *LuaState) String() string     { return fmt.Sprintf("state:%p", ls) }
+func (ls *LuaState) Type() LuaValueType { return LUA_TSTATE }
 
 // 用户数据
 type LuaUserData struct {
-	Value     	interface{}
-	Env       	*LuaTable
-	Metatable 	*LuaTable
+	Value     interface{}
+	Env       *LuaTable
+	Metatable *LuaTable
 }
-func (ud *LuaUserData) String() string			{ return fmt.Sprintf("userdata:%p", ud) }
-func (ud *LuaUserData) Type() LuaValueType		{ return LUA_TUSERDATA }
 
+func (ud *LuaUserData) String() string     { return fmt.Sprintf("userdata:%p", ud) }
+func (ud *LuaUserData) Type() LuaValueType { return LUA_TUSERDATA }
 
 type upvalue struct {
 	val *LuaValue
 }
+
 // go function
 type GoFunction func(*LuaState) int
+
 // lua闭包
 type LuaClosure struct {
-	proto  *compiler.FunctionProto 		// lua Closure
-	goFunc GoFunction          			// go Closure
+	proto  *compiler.FunctionProto // lua Closure
+	goFunc GoFunction              // go Closure
 	upvals []*upvalue
 }
-func (ud *LuaClosure) String() string			{ return fmt.Sprintf("closure:%p", ud) }
-func (ud *LuaClosure) Type() LuaValueType		{ return LUA_TCLOSURE }
+
+func (ud *LuaClosure) String() string     { return fmt.Sprintf("closure:%p", ud) }
+func (ud *LuaClosure) Type() LuaValueType { return LUA_TCLOSURE }
 
 func convertToBoolean(val LuaValue) bool {
 	switch val.Type() {

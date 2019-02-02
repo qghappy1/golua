@@ -476,7 +476,6 @@ func (self *funcInfo) emitBinaryOp(line, op, a, b, c int) {
 	}
 }
 
-
 func cgBlock(fi *funcInfo, node *Block) {
 	for _, stat := range node.Stats {
 		cgStat(fi, stat)
@@ -1269,17 +1268,17 @@ func lastLineOf(exp Exp) int {
 
 func toProto(fi *funcInfo) *FunctionProto {
 	proto := &FunctionProto{
-		LineDefined:     uint32(fi.line),
-		LastLineDefined: uint32(fi.lastLine),
-		NumParams:       byte(fi.numParams),
-		MaxStackSize:    byte(fi.maxRegs),
-		Code:            fi.insts,
-		Constants:       getConstants(fi),
-		Upvalues:        getUpvalues(fi),
-		Protos:          toProtos(fi.subFuncs),
+		LineDefined:        uint32(fi.line),
+		LastLineDefined:    uint32(fi.lastLine),
+		NumParams:          byte(fi.numParams),
+		MaxStackSize:       byte(fi.maxRegs),
+		Code:               fi.insts,
+		Constants:          getConstants(fi),
+		Upvalues:           getUpvalues(fi),
+		Protos:             toProtos(fi.subFuncs),
 		DbgSourcePositions: fi.lineNums,
-		DbgLocVars:		 getLocVars(fi),
-		DbgUpvalues:    getUpvalueNames(fi),
+		DbgLocVars:         getLocVars(fi),
+		DbgUpvalues:        getUpvalueNames(fi),
 	}
 
 	if fi.line == 0 {
@@ -1343,10 +1342,16 @@ func getUpvalueNames(fi *funcInfo) []string {
 	return names
 }
 
-func Compile(chunk, chunkName string) *FunctionProto {
-	ast := parse(chunk, chunkName)
-	proto := genProto(ast)
-	setSource(proto, chunkName)
+func Compile(chunk []byte, chunkName string) *FunctionProto {
+	var proto *FunctionProto
+	if isBinaryChunk(chunk) {
+		proto = undump(chunk)
+	} else {
+		str := string(chunk)
+		ast := parse(str, chunkName)
+		proto = genProto(ast)
+		setSource(proto, chunkName)
+	}
 	return proto
 }
 

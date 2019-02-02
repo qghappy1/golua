@@ -39,7 +39,7 @@ func Test_All(t *testing.T) {
 	//printProto(proto, 0)
 	filename := "main.lua"
 	if data, err := ioutil.ReadFile(filename); err == nil {
-		proto := Compile(string(data), "@"+filename)
+		proto := Compile(data, "@"+filename)
 		printProto(proto, 0)
 	}
 }

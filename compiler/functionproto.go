@@ -67,10 +67,10 @@ type FunctionProto struct {
 	Upvalues        []Upvalue
 	Protos          []*FunctionProto
 
-	DbgSourcePositions 	[]uint32
-	DbgLocVars			[]DbgLocVar
-	DbgCalls           	[]DbgCall
-	DbgUpvalues        	[]string
+	DbgSourcePositions []uint32
+	DbgLocVars         []DbgLocVar
+	DbgCalls           []DbgCall
+	DbgUpvalues        []string
 }
 
 type Upvalue struct {
@@ -78,14 +78,12 @@ type Upvalue struct {
 	Idx     byte
 }
 
-
-
-func IsBinaryChunk(data []byte) bool {
+func isBinaryChunk(data []byte) bool {
 	return len(data) > 4 &&
 		string(data[:4]) == LUA_SIGNATURE
 }
 
-func Undump(data []byte) *FunctionProto {
+func undump(data []byte) *FunctionProto {
 	reader := &reader{data}
 	reader.checkHeader()
 	reader.readByte() // size_upvalues

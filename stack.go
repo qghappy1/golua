@@ -37,6 +37,9 @@ func (self *luaStack) push(val LuaValue) {
 	if self.top == len(self.slots) {
 		panic(fmt.Errorf("val:%v, stack overflow!", val))
 	}
+	if val == nil {
+		val = LuaNil
+	}
 	self.slots[self.top] = val
 	self.top++
 }
@@ -58,7 +61,7 @@ func (self *luaStack) pushN(vals []LuaValue, n int) {
 	}
 
 	for i := 0; i < n; i++ {
-		if i < nVals {
+		if i < nVals && vals[i] != nil {
 			self.push(vals[i])
 		} else {
 			self.push(LuaNil)
@@ -116,6 +119,9 @@ func (self *luaStack) get(idx int) LuaValue {
 }
 
 func (self *luaStack) set(idx int, val LuaValue) {
+	if val == nil {
+		val = LuaNil
+	}
 	if idx < LUA_REGISTRYINDEX { /* upvalues */
 		uvIdx := LUA_REGISTRYINDEX - idx - 1
 		c := self.closure

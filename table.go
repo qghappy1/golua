@@ -240,3 +240,29 @@ func callMetamethod(ls *LuaState, a, b LuaValue, mmName string) (LuaValue, bool)
 	ls.Call(2, 1)
 	return ls.stack.pop(), true
 }
+
+// return t[key]
+func GetValueField(ls *LuaState, t, key LuaValue) LuaValue {
+	for i := 0; i < 100; i++ {
+		tb, istable := t.(*LuaTable)
+		if istable {
+			if ret := tb.Get(key); ret != LuaNil {
+				return ret
+			}
+		}
+		metaindex := GetMetafield(ls, t, "__index")
+		switch metaindex.Type() {
+		case LUA_TNIL:
+			return LuaNil
+		case LUA_TCLOSURE:
+			ls.stack.push(metaindex)
+			ls.stack.push(t)
+			ls.stack.push(key)
+			ls.Call(2, 1)
+			return ls.stack.pop()
+		default:
+			t = metaindex
+		}
+	}
+	return LuaNil
+}

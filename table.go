@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"fmt"
 	"golua/number"
 	"math"
 )
@@ -16,14 +17,8 @@ func newLuaTable(nArr, nRec int) *LuaTable {
 	return t
 }
 
-func (tb *LuaTable) GetMetafield(fieldName string) (LuaValue, bool) {
-	if tb.metatable == nil {
-		return LuaNil, false
-	}
-	if v := tb.metatable.Get(LuaString(fieldName)); v != LuaNil {
-		return v, true
-	}
-	return LuaNil, false
+func (tb *LuaTable) hasMetafield(fieldName string) bool {
+	return tb.metatable != nil && tb.metatable.Get(LuaString(fieldName)) != LuaNil
 }
 
 func (tb *LuaTable) Len() int {
@@ -186,4 +181,62 @@ func (tb *LuaTable) initKeys() {
 			key = k
 		}
 	}
+}
+
+/* metatable */
+func GetMetatable(ls *LuaState, val LuaValue) *LuaTable {
+	if t, ok := val.(*LuaTable); ok {
+		return t.metatable
+	}
+	if u, ok := val.(*LuaUserData); ok {
+		return u.Metatable
+	}
+	if val == nil {
+		val = LuaNil
+	}
+	key := LuaString(fmt.Sprintf("_MT%d", val.Type()))
+	v := ls.registry.Get(key)
+	if mt, ok := v.(*LuaTable); ok {
+		return mt
+	}
+	return nil
+}
+
+func SetMetatable(ls *LuaState, val LuaValue, mt *LuaTable) {
+	if t, ok := val.(*LuaTable); ok {
+		t.metatable = mt
+		return
+	}
+	if u, ok := val.(*LuaUserData); ok {
+		u.Metatable = mt
+		return
+	}
+	if val == nil {
+		val = LuaNil
+	}
+	key := LuaString(fmt.Sprintf("_MT%d", val.Type()))
+	ls.registry.Set(key, mt)
+}
+
+func GetMetafield(ls *LuaState, val LuaValue, fieldName string) LuaValue {
+	if mt := GetMetatable(ls, val); mt != nil {
+		return mt.Get(LuaString(fieldName))
+	}
+	return LuaNil
+}
+
+func callMetamethod(ls *LuaState, a, b LuaValue, mmName string) (LuaValue, bool) {
+	var mm LuaValue
+	if mm = GetMetafield(ls, a, mmName); mm == LuaNil {
+		if mm = GetMetafield(ls, b, mmName); mm == LuaNil {
+			return LuaNil, false
+		}
+	}
+
+	ls.stack.check(4)
+	ls.stack.push(mm)
+	ls.stack.push(a)
+	ls.stack.push(b)
+	ls.Call(2, 1)
+	return ls.stack.pop(), true
 }

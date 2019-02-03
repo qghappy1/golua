@@ -21,10 +21,6 @@ func (tb *LuaTable) hasMetafield(fieldName string) bool {
 	return tb.metatable != nil && tb.metatable.Get(LuaString(fieldName)) != LuaNil
 }
 
-func (tb *LuaTable) Len() int {
-	return len(tb.arr) + len(tb.map_)
-}
-
 func (tb *LuaTable) Get(key LuaValue) LuaValue {
 	if key == nil || key == LuaNil {
 		return LuaNil

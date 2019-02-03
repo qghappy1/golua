@@ -30,6 +30,7 @@ func (vt LuaValueType) String() string {
 type LuaValue interface {
 	String() string
 	Type() LuaValueType
+	Len() int
 }
 
 // 空类型
@@ -37,6 +38,7 @@ type LuaNilType struct{}
 
 func (nl *LuaNilType) String() string     { return "nil" }
 func (nl *LuaNilType) Type() LuaValueType { return LUA_TNIL }
+func (nl *LuaNilType) Len() int           { return 0 }
 
 var LuaNil = LuaValue(&LuaNilType{})
 
@@ -50,6 +52,7 @@ func (bl LuaBool) String() string {
 	return "false"
 }
 func (bl LuaBool) Type() LuaValueType { return LUA_TBOOLEAN }
+func (bl LuaBool) Len() int           { return 0 }
 
 var LuaTrue = LuaBool(true)
 var LuaFalse = LuaBool(false)
@@ -59,6 +62,7 @@ type LuaString string
 
 func (st LuaString) String() string     { return string(st) }
 func (st LuaString) Type() LuaValueType { return LUA_TSTRING }
+func (st LuaString) Len() int           { return len(st) }
 
 // 数字类型
 type LuaNumber float64
@@ -71,6 +75,7 @@ func (nm LuaNumber) String() string {
 	return fmt.Sprint(float64(nm))
 }
 func (nm LuaNumber) Type() LuaValueType { return LUA_TNUMBER }
+func (nm LuaNumber) Len() int           { return 0 }
 
 func floatToInteger(n LuaNumber) (int64, bool) {
 	return number.FloatToInteger(float64(n))
@@ -87,6 +92,7 @@ type LuaTable struct {
 
 func (tb *LuaTable) String() string     { return fmt.Sprintf("table:%p", tb) }
 func (tb *LuaTable) Type() LuaValueType { return LUA_TTABLE }
+func (tb *LuaTable) Len() int           { return len(tb.arr) + len(tb.map_) }
 
 // lua栈
 type LuaState struct {
@@ -100,6 +106,7 @@ type LuaState struct {
 
 func (ls *LuaState) String() string     { return fmt.Sprintf("state:%p", ls) }
 func (ls *LuaState) Type() LuaValueType { return LUA_TSTATE }
+func (ls *LuaState) Len() int           { return 0 }
 
 // 用户数据
 type LuaUserData struct {
@@ -110,6 +117,7 @@ type LuaUserData struct {
 
 func (ud *LuaUserData) String() string     { return fmt.Sprintf("userdata:%p", ud) }
 func (ud *LuaUserData) Type() LuaValueType { return LUA_TUSERDATA }
+func (ud *LuaUserData) Len() int           { return 0 }
 
 type upvalue struct {
 	val *LuaValue
@@ -127,6 +135,7 @@ type LuaClosure struct {
 
 func (ud *LuaClosure) String() string     { return fmt.Sprintf("closure:%p", ud) }
 func (ud *LuaClosure) Type() LuaValueType { return LUA_TCLOSURE }
+func (ud *LuaClosure) Len() int           { return 0 }
 
 func convertToBoolean(val LuaValue) bool {
 	switch val.Type() {
@@ -172,55 +181,3 @@ func _stringToInteger(s string) (int64, bool) {
 	}
 	return 0, false
 }
-
-/* metatable */
-
-//func getMetatable(val LuaValue, ls *LuaState) *LuaTable {
-//	if t, ok := val.(*LuaTable); ok {
-//		return t.metatable
-//	}
-//	if u, ok := val.(*LuaUserData); ok {
-//		return u.Metatable
-//	}
-//	key := fmt.Sprintf("_MT%d", typeOf(val))
-//	if mt := ls.registry.get(key); mt != nil {
-//		return mt.(*LuaTable)
-//	}
-//	return nil
-//}
-//
-//func setMetatable(val LuaValue, mt *LuaTable, ls *LuaState) {
-//	if t, ok := val.(*LuaTable); ok {
-//		t.metatable = mt
-//		return
-//	}
-//	if u, ok := val.(*LuaUserData); ok {
-//		u.Metatable = mt
-//		return
-//	}
-//	key := fmt.Sprintf("_MT%d", typeOf(val))
-//	ls.registry.put(key, mt)
-//}
-//
-//func getMetafield(val LuaValue, fieldName string, ls *LuaState) LuaValue {
-//	if mt := getMetatable(val, ls); mt != nil {
-//		return mt.get(fieldName)
-//	}
-//	return nil
-//}
-//
-//func callMetamethod(a, b LuaValue, mmName string, ls *LuaState) (LuaValue, bool) {
-//	var mm LuaValue
-//	if mm = getMetafield(a, mmName, ls); mm == nil {
-//		if mm = getMetafield(b, mmName, ls); mm == nil {
-//			return nil, false
-//		}
-//	}
-//
-//	ls.stack.check(4)
-//	ls.stack.push(mm)
-//	ls.stack.push(a)
-//	ls.stack.push(b)
-//	ls.Call(2, 1)
-//	return ls.stack.pop(), true
-//}

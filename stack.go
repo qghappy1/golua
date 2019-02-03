@@ -1,9 +1,5 @@
 package golua
 
-import (
-	"fmt"
-)
-
 type luaStack struct {
 	/* virtual stack */
 	slots []LuaValue
@@ -35,7 +31,7 @@ func (self *luaStack) check(n int) {
 
 func (self *luaStack) push(val LuaValue) {
 	if self.top == len(self.slots) {
-		panic(fmt.Errorf("val:%v, stack overflow!", val))
+		self.state.raiseError1("stack overflow.val:%v", val)
 	}
 	if val == nil {
 		val = LuaNil
@@ -46,7 +42,7 @@ func (self *luaStack) push(val LuaValue) {
 
 func (self *luaStack) pop() LuaValue {
 	if self.top < 1 {
-		panic("stack underflow!")
+		self.state.raiseError1("stack underflow")
 	}
 	self.top--
 	val := self.slots[self.top]
@@ -141,7 +137,7 @@ func (self *luaStack) set(idx int, val LuaValue) {
 		self.slots[absIdx-1] = val
 		return
 	}
-	panic(fmt.Errorf("invalid index!idx:%v val:%v", idx, val))
+	self.state.raiseError1("invalid index!idx:%v val:%v", idx, val)
 }
 
 func (self *luaStack) reverse(from, to int) {

@@ -303,14 +303,3 @@ func (ls *LuaState) where(level int, skipg bool) string {
 	}
 	return fmt.Sprintf("%v:%v", sourcename, line)
 }
-
-// 退出当前域时关闭外部变量表
-func (ls *LuaState) closeUpvalues(a int) {
-	for i, openuv := range ls.stack.openuvs {
-		if i >= a-1 {
-			val := *openuv.val
-			openuv.val = &val
-			delete(ls.stack.openuvs, i)
-		}
-	}
-}

@@ -305,24 +305,25 @@ func luaRawEqual(ls *LuaState, idx1, idx2 int) bool {
 
 // [-0, +0, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_compare
-// func luaCompare(ls *LuaState, idx1, idx2 int, op CompareOp) bool {
-// 	if !ls.stack.isValid(idx1) || !ls.stack.isValid(idx2) {
-// 		return false
-// 	}
+func luaCompare(ls *LuaState, idx1, idx2 int, op CompareOp) bool {
+	if !ls.stack.isValid(idx1) || !ls.stack.isValid(idx2) {
+		return false
+	}
 
-// 	a := ls.stack.get(idx1)
-// 	b := ls.stack.get(idx2)
-// 	switch op {
-// 	case LUA_OPEQ:
-// 		return _eq(a, b, ls)
-// 	case LUA_OPLT:
-// 		return _lt(a, b, ls)
-// 	case LUA_OPLE:
-// 		return _le(a, b, ls)
-// 	default:
-// 		panic("invalid compare op!")
-// 	}
-// }
+	a := ls.stack.get(idx1)
+	b := ls.stack.get(idx2)
+	switch op {
+	case LUA_OPEQ:
+		return _eq(a, b, ls)
+	case LUA_OPLT:
+		return _lt(a, b, ls)
+	case LUA_OPLE:
+		return _le(a, b, ls)
+	default:
+		ls.raiseError1("invalid compare op:%v", op)
+	}
+	return false
+}
 
 func _eq(a, b LuaValue, ls *LuaState) bool {
 	switch a.Type() {
@@ -806,6 +807,31 @@ func luaToString2(ls *LuaState, idx int) string {
 		}
 	}
 	return ls.CheckString(-1)
+}
+
+// [-(2|1), +1, e]
+// http://www.lua.org/manual/5.3/manual.html#lua_arith
+func luaArith(ls *LuaState, op ArithOp) {
+	var a, b LuaValue // operands
+	b = ls.stack.pop()
+	if op != LUA_OPUNM && op != LUA_OPBNOT {
+		a = ls.stack.pop()
+	} else {
+		a = b
+	}
+
+	operator := operators[op]
+	if result := _arith(a, b, operator); result != nil {
+		ls.stack.push(result)
+		return
+	}
+
+	mm := operator.metamethod
+	if result, ok := callMetamethod(ls, a, b, mm); ok {
+		ls.stack.push(result)
+		return
+	}
+	ls.raiseError1("arith error.a:%v b:%v op:%v", a, b, op)
 }
 
 // [-0, +1, e]

@@ -35,8 +35,27 @@ func printProto(proto *lua.FunctionProto, depth int)  {
 	}
 }
 
-// go test -v
-func Test_All(t *testing.T){
+// go test -v -test.run TestProto
+func TestProto(t *testing.T){
+	//str := "local a, b = 1, 2 \n a = b + 1"
+	//proto := Compile(str, "str")
+	//printProto(proto, 0)
+	filename := "main.lua"
+	if data, err := ioutil.ReadFile(filename); err == nil {
+		chunk, err := parse.Parse(strings.NewReader(string(data)), "@"+filename)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if proto, err := lua.Compile(chunk, "@"+filename); err == nil {
+			printProto(proto, 0)
+		}
+	}
+
+}
+
+// go test -v -test.run TestPCall
+func TestPCall(t *testing.T){
 	//str := "local a, b = 1, 2 \n a = b + 1"
 	//proto := Compile(str, "str")
 	//printProto(proto, 0)

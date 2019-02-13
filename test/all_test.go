@@ -7,6 +7,7 @@ import (
 	"github.com/yuin/gopher-lua"
 	"github.com/yuin/gopher-lua/parse"
 	"strings"
+	"golua"
 )
 
 func printProto(proto *lua.FunctionProto, depth int)  {
@@ -56,19 +57,10 @@ func TestProto(t *testing.T){
 
 // go test -v -test.run TestPCall
 func TestPCall(t *testing.T){
-	//str := "local a, b = 1, 2 \n a = b + 1"
-	//proto := Compile(str, "str")
-	//printProto(proto, 0)
 	filename := "main.lua"
-	if data, err := ioutil.ReadFile(filename); err == nil {
-		chunk, err := parse.Parse(strings.NewReader(string(data)), "@"+filename)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		if proto, err := lua.Compile(chunk, "@"+filename); err == nil {
-			printProto(proto, 0)
-		}
+	ls := golua.NewLuaState()
+	ls.LoadFile(filename)
+	if err := ls.PCall(0, 0, 0); err != nil {
+		fmt.Println(err)
 	}
-
 }

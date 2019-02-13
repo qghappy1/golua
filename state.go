@@ -179,14 +179,14 @@ func (ls *LuaState) Load(chunk []byte, chunkName string) int {
 // http://www.lua.org/manual/5.3/manual.html#luaL_dofile
 func (ls *LuaState) DoFile(filename string) bool {
 	return ls.LoadFile(filename) == LUA_OK &&
-		ls.PCall(0, LUA_MULTRET, 0) == LUA_OK
+		ls.PCall(0, LUA_MULTRET, 0) == nil
 }
 
 // [-0, +?, –]
 // http://www.lua.org/manual/5.3/manual.html#luaL_dostring
 func (ls *LuaState) DoString(str string) bool {
 	return ls.LoadString(str) == LUA_OK &&
-		ls.PCall(0, LUA_MULTRET, 0) == LUA_OK
+		ls.PCall(0, LUA_MULTRET, 0) == nil
 }
 
 // [-0, +1, m]
@@ -233,14 +233,136 @@ func (ls *LuaState) RequireF(modname string, openf GoFunction, glb bool) {
 // [-(nargs+1), +nresults, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_call
 func (ls *LuaState) Call(nArgs, nResults int) {
-	// todo
+	val := ls.stack.get(-(nArgs + 1))
+
+	c, ok := val.(*LuaClosure)
+	if !ok {
+
+		if mf := GetMetafield(ls, val, "__call"); mf != nil {
+			if c, ok = mf.(*LuaClosure); ok {
+				ls.stack.push(val)
+				luaInsert(ls, -(nArgs + 2))
+				nArgs += 1
+			}
+		}
+	}
+
+	if ok {
+		if c.proto != nil {
+			ls.callLuaClosure(nArgs, nResults, c)
+		} else {
+			ls.callGoClosure(nArgs, nResults, c)
+		}
+	} else {
+		panic("not function!")
+	}
+}
+
+func (ls *LuaState) callGoClosure(nArgs, nResults int, c *LuaClosure) {
+	// create new lua stack
+	newStack := newLuaStack(nArgs+LUA_MINSTACK, ls)
+	newStack.closure = c
+
+	// pass args, pop func
+	if nArgs > 0 {
+		args := ls.stack.popN(nArgs)
+		newStack.pushN(args, nArgs)
+	}
+	ls.stack.pop()
+
+	// run Closure
+	ls.pushLuaStack(newStack)
+	r := c.goFunc(ls)
+	ls.popLuaStack()
+
+	// return results
+	if nResults != 0 {
+		results := newStack.popN(r)
+		ls.stack.check(len(results))
+		ls.stack.pushN(results, nResults)
+	}
+}
+
+func (ls *LuaState) callLuaClosure(nArgs, nResults int, c *LuaClosure) {
+	nRegs := int(c.proto.MaxStackSize)
+	nParams := int(c.proto.NumParams)
+	isVararg := c.proto.IsVararg == 1
+
+	// create new lua stack
+	newStack := newLuaStack(nRegs+LUA_MINSTACK, ls)
+	newStack.closure = c
+
+	// pass args, pop func
+	funcAndArgs := ls.stack.popN(nArgs + 1)
+	newStack.pushN(funcAndArgs[1:], nParams)
+	newStack.top = nRegs
+	if nArgs > nParams && isVararg {
+		newStack.varargs = funcAndArgs[nParams+1:]
+	}
+
+	// run Closure
+	ls.pushLuaStack(newStack)
+	ls.runLuaClosure()
+	ls.popLuaStack()
+
+	// return results
+	if nResults != 0 {
+		results := newStack.popN(newStack.top - nRegs)
+		ls.stack.check(len(results))
+		ls.stack.pushN(results, nResults)
+	}
+}
+
+func (ls *LuaState) runLuaClosure() {
+	for {
+		inst := Instruction(ls.fetch())
+		inst.Execute(ls)
+		if inst.Opcode() == compiler.OP_RETURN {
+			break
+		}
+	}
 }
 
 // Calls a function in protected mode.
 // http://www.lua.org/manual/5.3/manual.html#lua_pcall
-func (ls *LuaState) PCall(nArgs, nResults, msgh int) (status int) {
-	// todo
-	status = LUA_OK
+func (ls *LuaState) PCall(nArgs, nResults, msgh int) (err error) {
+	caller := ls.stack
+
+	// catch error
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			if msgh != 0 {
+				panic(rcv)
+			}
+			first := true
+			for stack := ls.stack; stack!=nil; stack = stack.prev {
+				if stack.closure != nil {
+					if proto := stack.closure.proto; proto != nil {
+						if first {
+							err = fmt.Errorf("%v:%v %v", proto.Source, proto.DbgSourcePositions[stack.pc], rcv)
+							first = false
+							if prev := stack.prev; prev != nil && prev.closure != nil {
+								if proto := prev.closure.proto; proto != nil {
+									err = fmt.Errorf("%v\nstack traceback:\n", err)
+								}
+							}
+						}else{
+							err = fmt.Errorf("%v\t%v:%v\n", err, proto.Source, proto.DbgSourcePositions[stack.pc])
+						}
+					}else {
+						//if gofunc := stack.Closure.goFunc; gofunc != nil {
+						//	fmt.Println("go function:", gofunc)
+						//}
+					}
+				}
+			}
+			for ls.stack != caller {
+				ls.popLuaStack()
+			}
+		}
+	}()
+
+	ls.Call(nArgs, nResults)
 	return
 }
 

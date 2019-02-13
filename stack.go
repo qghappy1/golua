@@ -31,7 +31,7 @@ func (self *luaStack) check(n int) {
 
 func (self *luaStack) push(val LuaValue) {
 	if self.top == len(self.slots) {
-		self.state.raiseError1("stack overflow.val:%v", val)
+		panic("stack overflow!")
 	}
 	if val == nil {
 		val = LuaNil
@@ -42,7 +42,7 @@ func (self *luaStack) push(val LuaValue) {
 
 func (self *luaStack) pop() LuaValue {
 	if self.top < 1 {
-		self.state.raiseError1("stack underflow")
+		panic("stack underflow")
 	}
 	self.top--
 	val := self.slots[self.top]
@@ -137,7 +137,7 @@ func (self *luaStack) set(idx int, val LuaValue) {
 		self.slots[absIdx-1] = val
 		return
 	}
-	self.state.raiseError1("invalid index!idx:%v val:%v", idx, val)
+	panic("invalid index!idx:%v val:%v")
 }
 
 func (self *luaStack) reverse(from, to int) {

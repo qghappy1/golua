@@ -97,7 +97,7 @@ func (ls *LuaState) CheckAny(idx int) LuaValue {
 func (ls *LuaState) CheckInteger(idx int) int64 {
 	i, ok := luaToIntegerX(ls, idx)
 	if !ok {
-		ls.raiseError1("stack idx:%v value:%v not int64", idx, ls.stack.get(idx))
+		ls.intError(idx)
 	}
 	return i
 }
@@ -107,7 +107,7 @@ func (ls *LuaState) CheckInteger(idx int) int64 {
 func (ls *LuaState) CheckNumber(idx int) float64 {
 	f, ok := luaToNumberX(ls, idx)
 	if !ok {
-		ls.raiseError1("stack idx:%v value:%v not float64", idx, ls.stack.get(idx))
+		ls.tagError(idx, LUA_TNUMBER)
 	}
 	return f
 }
@@ -118,7 +118,7 @@ func (ls *LuaState) CheckNumber(idx int) float64 {
 func (ls *LuaState) CheckString(idx int) string {
 	s, ok := luaToStringX(ls, idx)
 	if !ok {
-		ls.raiseError1("stack idx:%v value:%v not string", idx, ls.stack.get(idx))
+		ls.tagError(idx, LUA_TSTRING)
 	}
 	return s
 }
@@ -128,7 +128,7 @@ func (ls *LuaState) CheckTable(idx int) *LuaTable {
 	if tb, ok := v.(*LuaTable); ok {
 		return tb
 	}
-	ls.raiseError1("stack idx:%v value:%v not table", idx, ls.stack.get(idx))
+	ls.tagError(idx, LUA_TTABLE)
 	return nil
 }
 
@@ -137,7 +137,7 @@ func (ls *LuaState) CheckClosure(idx int) *LuaClosure {
 	if c, ok := v.(*LuaClosure); ok {
 		return c
 	}
-	ls.raiseError1("stack idx:%v value:%v not closure", idx, ls.stack.get(idx))
+	ls.tagError(idx, LUA_TCLOSURE)
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (ls *LuaState) CheckUserData(idx int) *LuaUserData {
 	if ud, ok := v.(*LuaUserData); ok {
 		return ud
 	}
-	ls.raiseError1("stack idx:%v value:%v not userdata", idx, ls.stack.get(idx))
+	ls.tagError(idx, LUA_TUSERDATA)
 	return nil
 }
 
@@ -245,14 +245,25 @@ func (ls *LuaState) PCall(nArgs, nResults, msgh int) (status int) {
 }
 
 // debug error
-func (ls *LuaState) raiseError1(format string, args ...interface{}) {
-	message := format
-	if len(args) > 0 {
-		message = fmt.Sprintf(format, args...)
-	}
-	message = fmt.Sprintf("%v %v", ls.where(0, true), message)
-	// ls.stack.push(LuaString(message))
-	panic(message)
+// [-1, +0, v]
+// http://www.lua.org/manual/5.3/manual.html#lua_error
+func (ls *LuaState) Error() int {
+	err := ls.stack.pop()
+	panic(err)
+}
+
+// [-0, +0, v]
+// http://www.lua.org/manual/5.3/manual.html#luaL_error
+func (ls *LuaState) Error2(fmt string, a ...interface{}) int {
+	luaPushFString(ls, fmt, a...) // todo
+	return ls.Error()
+}
+
+// [-0, +0, v]
+// http://www.lua.org/manual/5.3/manual.html#luaL_argerror
+func (ls *LuaState) ArgError(arg int, extraMsg string) int {
+	// bad argument #arg to 'funcname' (extramsg)
+	return ls.Error2("bad argument #%d (%s)", arg, extraMsg) // todo
 }
 
 func (ls *LuaState) raiseError(level int, format string, args ...interface{}) {
@@ -279,6 +290,32 @@ func (ls *LuaState) getDebug(level int) *luaDebug {
 		return &luaDebug{stack: ls.stack}
 	}
 	return nil
+}
+
+func (ls *LuaState) intError(arg int) {
+	if luaIsNumber(ls, arg) {
+		ls.ArgError(arg, "number has no integer representation")
+	} else {
+		ls.tagError(arg, LUA_TNUMBER)
+	}
+}
+
+func (ls *LuaState) tagError(arg int, tag LuaValueType) {
+	ls.typeError(arg, tag.String())
+}
+
+func (ls *LuaState) typeError(arg int, tname string) int {
+	var typeArg string /* name for the type of the actual argument */
+	if luaGetMetafield(ls, arg, "__name") == LUA_TSTRING {
+		typeArg = luaToString(ls, -1) /* use the given type name */
+	} else if luaType(ls, arg) == LUA_TUSERDATA {
+		typeArg = "userdata" /* special name for messages */
+	} else {
+		typeArg = luaTypeName2(ls, arg) /* standard name */
+	}
+	msg := tname + " expected, got " + typeArg
+	ls.Push(LuaString(msg))
+	return ls.ArgError(arg, msg)
 }
 
 func (ls *LuaState) where(level int, skipg bool) string {

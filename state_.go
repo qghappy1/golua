@@ -320,7 +320,7 @@ func luaCompare(ls *LuaState, idx1, idx2 int, op CompareOp) bool {
 	case LUA_OPLE:
 		return _le(a, b, ls)
 	default:
-		ls.raiseError1("invalid compare op:%v", op)
+		panic("invalid compare op!")
 	}
 	return false
 }
@@ -380,7 +380,7 @@ func _lt(a, b LuaValue, ls *LuaState) bool {
 	if result, ok := callMetamethod(ls, a, b, "__lt"); ok {
 		return convertToBoolean(result)
 	}
-	ls.raiseError1("comparison err.a:%v,b:%v", a, b)
+	panic("comparison error!")
 	return false
 }
 
@@ -408,7 +408,7 @@ func _le(a, b LuaValue, ls *LuaState) bool {
 	if _eq(a, b, ls) == true {
 		return true
 	}
-	ls.raiseError1("comparison err.a:%v,b:%v", a, b)
+	panic("comparison error!")
 	return false
 }
 
@@ -445,7 +445,7 @@ func luaGetTable_(ls *LuaState, t, k LuaValue, raw bool) LuaValueType {
 			}
 		}
 	}
-	ls.raiseError1("get table field fail.t:%v,k:%v", t, k)
+	panic("index error!")
 	return LUA_TNIL
 }
 
@@ -509,7 +509,7 @@ func luaLen(ls *LuaState, idx int) {
 	} else if val.Type() == LUA_TTABLE {
 		ls.stack.push(LuaNumber(val.Len()))
 	} else {
-		ls.raiseError1("length error.val:%v", val)
+		panic("length error!")
 	}
 }
 
@@ -654,7 +654,7 @@ func luaSetMetatable(ls *LuaState, idx int) {
 	} else if mt, ok := mtVal.(*LuaTable); ok {
 		SetMetatable(ls, val, mt)
 	} else {
-		ls.raiseError1("set metatable error.val:%v meta:%v", val, mtVal)
+		panic("set metatable error")
 	}
 }
 
@@ -692,9 +692,9 @@ func luaSetTable_(ls *LuaState, t, k, v LuaValue, raw bool) {
 func luaCheckStack2(ls *LuaState, sz int, msg string) {
 	if !luaCheckStack(ls, sz) {
 		if msg != "" {
-			ls.raiseError1("stack overflow (%s)", msg)
+			ls.Error2("stack overflow (%s)", msg)
 		} else {
-			ls.raiseError1("stack overflow")
+			ls.Error2("stack overflow")
 		}
 	}
 }
@@ -703,7 +703,7 @@ func luaCheckStack2(ls *LuaState, sz int, msg string) {
 // http://www.lua.org/manual/5.3/manual.html#luaL_checktype
 func luaCheckType(ls *LuaState, arg int, t LuaValueType) {
 	if luaType(ls, arg) != t {
-		ls.raiseError1("check type error")
+		ls.tagError(arg, t)
 	}
 }
 
@@ -718,7 +718,7 @@ func luaCheckTypes(ls *LuaState, n int, typs ...LuaValueType) {
 	for _, typ := range typs {
 		buf = append(buf, typ.String())
 	}
-	ls.raiseError1("check types error.%s", strings.Join(buf, " or ")+" expected, got "+vt.String())
+	ls.ArgError(n, strings.Join(buf, " or ")+" expected, got "+ vt.String())
 }
 
 // [-0, +0, v]
@@ -760,7 +760,7 @@ func luaLen2(ls *LuaState, idx int) int64 {
 	luaLen(ls, idx)
 	i, isNum := luaToIntegerX(ls, -1)
 	if !isNum {
-		ls.raiseError1("object length is not an integer")
+		ls.Error2("object length is not an integer")
 	}
 	luaPop(ls, 1)
 	return i
@@ -771,7 +771,7 @@ func luaLen2(ls *LuaState, idx int) int64 {
 func luaToString2(ls *LuaState, idx int) string {
 	if luaCallMeta(ls, idx, "__tostring") { /* metafield? */
 		if !luaIsString(ls, -1) {
-			ls.raiseError1("'__tostring' must return a string")
+			ls.Error2("'__tostring' must return a string")
 		}
 	} else {
 		switch luaType(ls, idx) {
@@ -831,7 +831,7 @@ func luaArith(ls *LuaState, op ArithOp) {
 		ls.stack.push(result)
 		return
 	}
-	ls.raiseError1("arith error.a:%v b:%v op:%v", a, b, op)
+	panic("arithmetic error")
 }
 
 // [-0, +1, e]

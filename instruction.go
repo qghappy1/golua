@@ -69,7 +69,7 @@ func (inst Instruction) Execute(ls *LuaState) {
 	if action != nil {
 		action(inst, ls)
 	} else {
-		ls.raiseError1(inst.OpName())
+		panic(inst.OpName())
 	}
 }
 

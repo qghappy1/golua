@@ -3,6 +3,7 @@ package golua
 import (
 	"golua/number"
 	"math"
+	"reflect"
 )
 
 /* arithmetic functions */
@@ -131,7 +132,7 @@ func (ls *LuaState) getConst(idx int) {
 	case int:
 		ls.stack.push(LuaNumber(x))
 	default:
-		ls.raiseError1("get const:%v error", c)
+		ls.typeError(idx, reflect.TypeOf(c).Name())
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"golua/number"
 	"math"
 	"reflect"
+	"fmt"
 )
 
 /* arithmetic functions */
@@ -131,8 +132,12 @@ func (ls *LuaState) getConst(idx int) {
 		ls.stack.push(LuaString(x))
 	case int:
 		ls.stack.push(LuaNumber(x))
+	case int64:
+		ls.stack.push(LuaNumber(x))
+	case float64:
+		ls.stack.push(LuaNumber(x))
 	default:
-		ls.typeError(idx, reflect.TypeOf(c).Name())
+		panic(fmt.Errorf("const type:%v error", reflect.TypeOf(c).Name()) )
 	}
 }
 

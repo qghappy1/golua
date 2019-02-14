@@ -809,6 +809,16 @@ func luaToString2(ls *LuaState, idx int) string {
 	return ls.CheckString(-1)
 }
 
+// [-0, +1, m]
+// http://www.lua.org/manual/5.3/manual.html#lua_newthread
+// lua-5.3.4/src/lstate.c#lua_newthread()
+func luaNewThread(ls *LuaState) *LuaState {
+	t := &LuaState{registry: ls.registry}
+	t.pushLuaStack(newLuaStack(LUA_MINSTACK, t))
+	ls.stack.push(t)
+	return t
+}
+
 // [-(2|1), +1, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_arith
 func luaArith(ls *LuaState, op ArithOp) {

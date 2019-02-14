@@ -3,7 +3,7 @@ local function add(a, b)
     return a + b + c
 end
 
-add(c, 2.2222)
+print(add(c, 2.2222))
 
 
 

@@ -3,21 +3,21 @@ package golua
 // [-0, +0, e]
 // http://www.lua.org/manual/5.3/manual.html#luaL_openlibs
 func (ls *LuaState) OpenLibs() {
-	// libs := map[string]GoFunction{
-	// 	"_G":        OpenBaseLib,
-	// 	"math":      OpenMathLib,
-	// 	"table":     OpenTableLib,
-	// 	"string":    OpenStringLib,
-	// 	"utf8":      OpenUTF8Lib,
-	// 	"os":        OpenOSLib,
-	// 	"package":   OpenPackageLib,
-	// 	"coroutine": OpenCoroutineLib,
-	// }
+	 libs := map[string]GoFunction{
+	 	"_G":        OpenBaseLib,
+	 	"math":      OpenMathLib,
+	 	"table":     OpenTableLib,
+	 	"string":    OpenStringLib,
+	 	"utf8":      OpenUTF8Lib,
+	 	"os":        OpenOSLib,
+	 	"package":   OpenPackageLib,
+	 	"coroutine": OpenCoroutineLib,
+	 }
 
-	// for name, fun := range libs {
-	// 	ls.RequireF(name, fun, true)
-	// 	luaPop(ls, 1)
-	// }
+	 for name, fun := range libs {
+	 	ls.RequireF(name, fun, true)
+	 	luaPop(ls, 1)
+	 }
 }
 
 type FuncReg map[string]GoFunction

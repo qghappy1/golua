@@ -176,8 +176,8 @@ func (self *reader) readLocVars() []DbgLocVar {
 	for i := range locVars {
 		locVars[i] = DbgLocVar{
 			VarName: self.readString(),
-			StartPC: self.readUint32(),
-			EndPC:   self.readUint32(),
+			StartPC: int(self.readUint32()),
+			EndPC:   int(self.readUint32()),
 		}
 	}
 	return locVars

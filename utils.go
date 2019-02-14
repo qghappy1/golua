@@ -5,7 +5,24 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
+	"golua/compiler"
 )
+
+func intMin(a, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func intMax(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
 
 type flagScanner struct {
 	flag       byte
@@ -95,4 +112,30 @@ func unsafeFastStringToReadOnlyBytes(s string) []byte {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	bh := reflect.SliceHeader{Data: sh.Data, Len: sh.Len, Cap: sh.Len}
 	return *(*[]byte)(unsafe.Pointer(&bh))
+}
+
+func printProto(proto *compiler.FunctionProto, depth int)  {
+	t := ""
+	for i := 0; i<depth; i++ {
+		t = t + "\t"
+	}
+	fmt.Printf("%vSource:%v\n", t, proto.Source)
+	fmt.Printf("%vLineDefined:%v\n", t, proto.LineDefined)
+	fmt.Printf("%vLastLineDefined:%v\n", t, proto.LastLineDefined)
+	fmt.Printf("%vNumParams:%v\n", t, proto.NumParams)
+	fmt.Printf("%vIsVararg:%v\n", t, proto.IsVararg)
+
+	fmt.Printf("%vMaxStackSize:%v\n", t, proto.MaxStackSize)
+	fmt.Printf("%vCode:%v\n", t, proto.Code)
+	fmt.Printf("%vConstants:%v\n", t, proto.Constants)
+	fmt.Printf("%vDbgSourcePositions:%v\n", t, proto.DbgSourcePositions)
+	for _, v := range proto.DbgLocVars {
+		fmt.Printf("%vDbgLocVars:%+v\n", t, v)
+	}
+	fmt.Printf("%vDbgCalls:%v\n", t, proto.DbgCalls)
+	fmt.Printf("%vDbgUpvalues:%v\n", t, proto.DbgUpvalues)
+
+	for _, p := range proto.Protos {
+		printProto(p, depth+1)
+	}
 }

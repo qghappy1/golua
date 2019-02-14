@@ -45,8 +45,8 @@ type header struct {
 
 type DbgLocVar struct {
 	VarName string
-	StartPC uint32
-	EndPC   uint32
+	StartPC int
+	EndPC   int
 }
 
 type DbgCall struct {
@@ -71,6 +71,18 @@ type FunctionProto struct {
 	DbgLocVars         []DbgLocVar
 	DbgCalls           []DbgCall
 	DbgUpvalues        []string
+}
+
+func (fp *FunctionProto) LocalName(regno, pc int) (string, bool) {
+	for i := 0; i < len(fp.DbgLocVars) && fp.DbgLocVars[i].StartPC < pc; i++ {
+		if pc < fp.DbgLocVars[i].EndPC {
+			regno--
+			if regno == 0 {
+				return fp.DbgLocVars[i].VarName, true
+			}
+		}
+	}
+	return "", false
 }
 
 type Upvalue struct {

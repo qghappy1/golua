@@ -12,6 +12,8 @@ type luaStack struct {
 	pc      int
 	/* linked list */
 	prev *luaStack
+	// tail call
+	tailCall		int		// todo
 }
 
 func newLuaStack(size int, state *LuaState) *luaStack {

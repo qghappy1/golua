@@ -829,9 +829,9 @@ func luaArith(ls *LuaState, op ArithOp) {
 	} else {
 		a = b
 	}
-
 	operator := operators[op]
-	if result := _arith(a, b, operator); result != nil {
+	fmt.Printf("a:%v b:%v op:%v\n", a, b, operator.metamethod)
+	if result := _arith(a, b, operator); result != LuaNil {
 		ls.stack.push(result)
 		return
 	}

@@ -1315,8 +1315,8 @@ func getLocVars(fi *funcInfo) []DbgLocVar {
 	for i, locVar := range fi.locVars {
 		locVars[i] = DbgLocVar{
 			VarName: locVar.name,
-			StartPC: uint32(locVar.startPC),
-			EndPC:   uint32(locVar.endPC),
+			StartPC: locVar.startPC,
+			EndPC:   locVar.endPC,
 		}
 	}
 	return locVars

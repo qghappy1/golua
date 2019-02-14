@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golua/compiler"
 	"io/ioutil"
+	"strings"
 )
 
 const LUA_MINSTACK = 20
@@ -469,4 +470,80 @@ func (ls *LuaState) where(level int, skipg bool) string {
 		line = fmt.Sprintf("%v:", proto.DbgSourcePositions[dbg.stack.pc-1])
 	}
 	return fmt.Sprintf("%v:%v", sourcename, line)
+}
+
+func (ls *LuaState) findLocal(stack *luaStack, no int) string {
+	if stack.closure == nil {return ""}
+	fn := stack.closure.proto
+	if fn != nil {
+		if name, ok := fn.LocalName(no, stack.pc-1); ok {
+			return name
+		}
+	}
+	return ""
+}
+
+func (ls *LuaState) stackTrace(level int) string {
+	buf := []string{}
+	header := "stack traceback:"
+	if ls.stack != nil {
+		i := 0
+		for dbg := ls.getDebug(i); dbg!=nil; dbg = ls.getDebug(i) {
+			s := dbg.stack
+			buf = append(buf, fmt.Sprintf("\t%v in %v", ls.where(i, false), ls.formattedFrameFuncName(s)))
+			if c := s.closure; c != nil && c.proto != nil && s.tailCall>0 {
+				for tc := s.tailCall; tc > 0; tc-- {
+					buf = append(buf, "\t(tailcall): ?")
+					i++
+				}
+			}
+			i++
+		}
+	}
+	buf = append(buf, fmt.Sprintf("\t%v: %v", "[G]", "?"))
+	buf = buf[intMax(0, intMin(level, len(buf))):len(buf)]
+	if len(buf) > 20 {
+		newbuf := make([]string, 0, 20)
+		newbuf = append(newbuf, buf[0:7]...)
+		newbuf = append(newbuf, "\t...")
+		newbuf = append(newbuf, buf[len(buf)-7:len(buf)]...)
+		buf = newbuf
+	}
+	return fmt.Sprintf("%s\n%s", header, strings.Join(buf, "\n"))
+}
+
+func (ls *LuaState) formattedFrameFuncName(stack *luaStack) string {
+	name, ischunk := ls.frameFuncName(stack)
+	if ischunk {
+		return name
+	}
+	if name[0] != '(' && name[0] != '<' {
+		return fmt.Sprintf("function '%s'", name)
+	}
+	return fmt.Sprintf("function %s", name)
+}
+
+func (ls *LuaState) frameFuncName(stack *luaStack) (string, bool) {
+	fstack := stack.prev
+	if fstack == nil {
+		return "main chunk", true
+	}
+	if c := fstack.closure; c != nil && c.proto != nil {
+		pc := fstack.pc - 1
+		for _, call := range c.proto.DbgCalls {
+			if call.Pc == pc {
+				name := call.Name
+				if name == "?" {
+					if c0 := stack.closure; c0!=nil && c0.proto != nil {
+						name = fmt.Sprintf("<%v:%v>", c0.proto.Source, c0.proto.LineDefined)
+					}
+				}
+				return name, false
+			}
+		}
+	}
+	if c := stack.closure; c!=nil && c.proto != nil {
+		return fmt.Sprintf("<%v:%v>", c.proto.Source, c.proto.LineDefined), false
+	}
+	return "(anonymous)", false
 }

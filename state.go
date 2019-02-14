@@ -93,6 +93,14 @@ func (ls *LuaState) CheckAny(idx int) LuaValue {
 }
 
 // [-0, +0, v]
+// http://www.lua.org/manual/5.3/manual.html#luaL_argcheck
+func (ls *LuaState) ArgCheck(cond bool, arg int, extraMsg string) {
+	if !cond {
+		ls.ArgError(arg, extraMsg)
+	}
+}
+
+// [-0, +0, v]
 // http://www.lua.org/manual/5.3/manual.html#luaL_checkinteger
 func (ls *LuaState) CheckInteger(idx int) int64 {
 	i, ok := luaToIntegerX(ls, idx)
